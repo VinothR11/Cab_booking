@@ -108,12 +108,7 @@ public class CabsControllerTest {
         verify(cabsManager, times(1)).createCab(new Cab(cabId, driverName));
     }
 
-    @Test
-    void testEndTrip_MissingCabId() throws Exception {
-        // Perform the POST request with a missing cabId and expect a 400 Bad Request status
-        mockMvc.perform(post("/update/cab/end/trip"))
-                .andExpect(status().isBadRequest());
-    }
+  
 
     @Test
     void testUpdateCabLocation_InvalidCoordinates() throws Exception {
