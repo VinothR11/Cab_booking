@@ -1,0 +1,111 @@
+package com.uditagarwal.cabbooking.controller;
+
+import com.uditagarwal.cabbooking.database.RidersManager;
+import com.uditagarwal.cabbooking.model.Location;
+import com.uditagarwal.cabbooking.model.Rider;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(RiderController.class)
+public class RiderControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private RidersManager ridersManager;
+
+    @Test
+    void testRegisterRider() throws Exception {
+        String riderId = "RIDER123";
+        String riderName = "Jane Doe";
+
+        // Perform the POST request and check for a 200 OK status
+        mockMvc.perform(post("/register/rider")
+                        .param("riderId", riderId)
+                        .param("riderName", riderName))
+                .andExpect(status().isOk());
+
+        // Verify that createRider() was called with the correct arguments
+        verify(ridersManager, times(1)).createRider(new Rider(riderId, riderName));
+    }
+
+    @Test
+    void testUpdateRiderLocation() throws Exception {
+        String riderId = "RIDER123";
+        Double newX = 12.34;
+        Double newY = 56.78;
+
+        // Perform the POST request and check for a 200 OK status
+        mockMvc.perform(post("/update/rider/location")
+                        .param("riderId", riderId)
+                        .param("newX", String.valueOf(newX))
+                        .param("newY", String.valueOf(newY)))
+                .andExpect(status().isOk());
+
+        // Verify that updateRiderLocation() was called with the correct arguments
+        verify(ridersManager, times(1)).updateRiderLocation(eq(riderId), eq(new Location(newX, newY)));
+    }
+
+    @Test
+    void testRegisterRider_Duplicate() throws Exception {
+        String riderId = "RIDER123";
+        String riderName = "Jane Doe";
+
+        // Mock a duplicate rider scenario
+        doThrow(new IllegalArgumentException("Rider already exists.")).when(ridersManager).createRider(new Rider(riderId, riderName));
+
+        // Perform the POST request and expect a 400 Bad Request status
+        mockMvc.perform(post("/register/rider")
+                        .param("riderId", riderId)
+                        .param("riderName", riderName))
+                .andExpect(status().isBadRequest());
+
+        // Verify that createRider() was called once
+        verify(ridersManager, times(1)).createRider(new Rider(riderId, riderName));
+    }
+
+    @Test
+    void testUpdateRiderLocation_InvalidRider() throws Exception {
+        String riderId = "INVALID_RIDER";
+        Double newX = 12.34;
+        Double newY = 56.78;
+
+        // Mock an invalid rider scenario
+        doThrow(new IllegalArgumentException("Rider not found.")).when(ridersManager).updateRiderLocation(eq(riderId), eq(new Location(newX, newY)));
+
+        // Perform the POST request and expect a 400 Bad Request status
+        mockMvc.perform(post("/update/rider/location")
+                        .param("riderId", riderId)
+                        .param("newX", String.valueOf(newX))
+                        .param("newY", String.valueOf(newY)))
+                .andExpect(status().isBadRequest());
+
+        // Verify that updateRiderLocation() was called once
+        verify(ridersManager, times(1)).updateRiderLocation(eq(riderId), eq(new Location(newX, newY)));
+    }
+
+    @Test
+    void testRiderNotFound() throws Exception {
+        String riderId = "NON_EXISTENT_RIDER";
+
+        // Mock a rider not found scenario
+        when(ridersManager.getRider(riderId)).thenThrow(new IllegalArgumentException("Rider not found."));
+
+        // Perform the POST request and expect a 400 Bad Request status
+        mockMvc.perform(post("/get/rider")
+                        .param("riderId", riderId))
+                .andExpect(status().isBadRequest());
+
+        // Verify that getRider() was called once
+        verify(ridersManager, times(1)).getRider(riderId);
+    }
+}

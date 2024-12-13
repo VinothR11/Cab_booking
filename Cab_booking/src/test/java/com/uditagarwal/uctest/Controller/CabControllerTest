@@ -1,0 +1,134 @@
+package com.uditagarwal.cabbooking.controllers;
+
+import com.uditagarwal.cabbooking.database.CabsManager;
+import com.uditagarwal.cabbooking.database.TripsManager;
+import com.uditagarwal.cabbooking.model.Cab;
+import com.uditagarwal.cabbooking.model.Location;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(CabsController.class)
+public class CabsControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private CabsManager cabsManager;
+
+    @MockBean
+    private TripsManager tripsManager;
+    
+    @Test
+    void testRegisterCab() throws Exception {
+        String cabId = "CAB123";
+        String driverName = "John Doe";
+
+        // Perform the POST request and check for a 200 OK status
+        mockMvc.perform(post("/register/cab")
+                        .param("cabId", cabId)
+                        .param("driverName", driverName))
+                .andExpect(status().isOk());
+
+        // Verify that createCab() was called with the correct arguments
+        verify(cabsManager, times(1)).createCab(new Cab(cabId, driverName));
+    }
+
+    @Test
+    void testUpdateCabLocation() throws Exception {
+        String cabId = "CAB123";
+        Double newX = 12.34;
+        Double newY = 56.78;
+
+        // Perform the POST request and check for a 200 OK status
+        mockMvc.perform(post("/update/cab/location")
+                        .param("cabId", cabId)
+                        .param("newX", String.valueOf(newX))
+                        .param("newY", String.valueOf(newY)))
+                .andExpect(status().isOk());
+
+        // Verify that updateCabLocation() was called with the correct arguments
+        verify(cabsManager, times(1)).updateCabLocation(eq(cabId), eq(new Location(newX, newY)));
+    }
+
+    @Test
+    void testUpdateCabAvailability() throws Exception {
+        String cabId = "CAB123";
+        Boolean newAvailability = true;
+
+        // Perform the POST request and check for a 200 OK status
+        mockMvc.perform(post("/update/cab/availability")
+                        .param("cabId", cabId)
+                        .param("newAvailability", String.valueOf(newAvailability)))
+                .andExpect(status().isOk());
+
+        // Verify that updateCabAvailability() was called with the correct arguments
+        verify(cabsManager, times(1)).updateCabAvailability(eq(cabId), eq(newAvailability));
+    }
+
+    @Test
+    void testEndTrip() throws Exception {
+        String cabId = "CAB123";
+        Cab mockCab = new Cab(cabId, "John Doe");
+
+        // Mock the behavior of cabsManager
+        when(cabsManager.getCab(cabId)).thenReturn(mockCab);
+
+        // Perform the POST request and check for a 200 OK status
+        mockMvc.perform(post("/update/cab/end/trip")
+                        .param("cabId", cabId))
+                .andExpect(status().isOk());
+
+        // Verify that endTrip() was called with the correct arguments
+        verify(tripsManager, times(1)).endTrip(mockCab);
+    }
+
+    @Test
+    void testRegisterCab_DuplicateCabId() throws Exception {
+        String cabId = "CAB123";
+        String driverName = "John Doe";
+
+        // Mock the behavior for duplicate cab
+        doThrow(new IllegalArgumentException("Cab already exists")).when(cabsManager).createCab(any(Cab.class));
+
+        // Perform the POST request and expect a 400 Bad Request status
+        mockMvc.perform(post("/register/cab")
+                        .param("cabId", cabId)
+                        .param("driverName", driverName))
+                .andExpect(status().isBadRequest());
+
+        // Verify that createCab() was called
+        verify(cabsManager, times(1)).createCab(new Cab(cabId, driverName));
+    }
+
+    @Test
+    void testEndTrip_MissingCabId() throws Exception {
+        // Perform the POST request with a missing cabId and expect a 400 Bad Request status
+        mockMvc.perform(post("/update/cab/end/trip"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testUpdateCabLocation_InvalidCoordinates() throws Exception {
+        String cabId = "CAB123";
+        String invalidX = "abc";
+        String invalidY = "xyz";
+
+        // Perform the POST request with invalid coordinates and expect a 400 Bad Request status
+        mockMvc.perform(post("/update/cab/location")
+                        .param("cabId", cabId)
+                        .param("newX", invalidX)
+                        .param("newY", invalidY))
+                .andExpect(status().isBadRequest());
+
+        // Verify that updateCabLocation() was never called
+        verify(cabsManager, times(0)).updateCabLocation(anyString(), any(Location.class));
+    }
+}
