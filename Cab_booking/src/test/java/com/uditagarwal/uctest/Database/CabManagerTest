@@ -1,4 +1,4 @@
-package com.uditagarwal.cabbooking.database;
+package com.uditagarwal.cabbooking.database.CabManager;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.BeforeEach;
